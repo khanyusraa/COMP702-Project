@@ -118,13 +118,13 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(train_val_df, train_val_df
         verbose=1
     )
 
-    # Evaluate on val set
+    #Evaluate on val set
     val_loss, val_acc = model.evaluate(val_gen, verbose=0)
     print(f"Fold {fold+1} validation accuracy: {val_acc:.4f}, val loss: {val_loss:.4f}")
 
     fold_accuracies.append(val_acc)
 
-    # Keep best model
+    #Keep best model
     if val_loss < best_val_loss:
         best_val_loss = val_loss
         best_fold = fold
@@ -134,10 +134,10 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(train_val_df, train_val_df
 print(f"\nCross-validation accuracy: {np.mean(fold_accuracies):.4f} ± {np.std(fold_accuracies):.4f}")
 print(f"Best fold: {best_fold+1} with val loss {best_val_loss:.4f}")
 
-# Save best model
+#Save best model
 best_model.save('best_model_overall.keras')
 
-# --- Evaluate best model on TEST set ---
+#Evaluate best model on TEST set
 test_gen = datagen.flow_from_dataframe(
     test_df.reset_index(drop=True),
     x_col='filepath',
@@ -152,7 +152,7 @@ test_gen = datagen.flow_from_dataframe(
 test_loss, test_acc = best_model.evaluate(test_gen, verbose=1)
 print(f"Test set accuracy: {test_acc:.4f}")
 
-# Classification report on test set
+#Classification report on test set
 test_preds_prob = best_model.predict(test_gen)
 test_preds = np.argmax(test_preds_prob, axis=1)
 true_test_labels = test_gen.classes
@@ -160,7 +160,7 @@ true_test_labels = test_gen.classes
 print("\nClassification Report on test set:")
 print(classification_report(true_test_labels, test_preds, target_names=class_names))
 
-# --- Plot training vs validation accuracy of best fold ---
+#Plot training vs validation accuracy of best fold
 plt.figure(figsize=(8,6))
 plt.plot(best_history.history['accuracy'], label='Training Accuracy')
 plt.plot(best_history.history['val_accuracy'], label='Validation Accuracy')
