@@ -1,0 +1,122 @@
+import tensorflow as tf
+from keras import layers, models
+from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+from pathlib import Path
+import cv2 
+import os
+from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
+
+# Where your images and CSV live
+data_dir = Path(r"702CNN\augmented_dataset")  # folder with the image files
+csv_path = Path(r"702CNN\coin_labels_augmented.csv")  # your CSV
+
+# Load CSV
+df = pd.read_csv(csv_path)
+
+# Full path to image
+df['filepath'] = df['filename'].apply(lambda x: str(data_dir / x))
+
+# Create a single label column 
+df['label'] = df['denomination']
+
+# Encode labels to integers
+label_to_index = {label: idx for idx, label in enumerate(df['label'].unique())}
+df['label_idx'] = df['label'].map(label_to_index)
+
+# Split dataset
+train_df, test_df = train_test_split(df, test_size=0.2, stratify=df['label_idx'], random_state=42)
+
+
+def load_and_preprocess(path, label):
+    # Read and decode with TensorFlow
+    image = tf.io.read_file(path)
+    image = tf.image.decode_jpeg(image, channels=3)
+    
+    # Wrap OpenCV processing in TF py_function
+    def cv_processing(img):
+        # Convert TensorFlow tensor to numpy array
+        img = img.numpy()
+        
+        # Convert RGB to BGR (OpenCV expects BGR)
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        
+        # Your processing pipeline
+        resized = cv2.resize(img, (128, 128))  # Match model input size
+        sharpen_kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
+        sharpened = cv2.filter2D(resized, -1, sharpen_kernel)
+        gray = cv2.cvtColor(sharpened, cv2.COLOR_BGR2GRAY)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+        clahe_img = clahe.apply(gray)
+        normalized = cv2.normalize(clahe_img, None, 0, 255, cv2.NORM_MINMAX)
+        blurred = cv2.GaussianBlur(normalized, (5,5), 0)
+        bilateral = cv2.bilateralFilter(blurred, 9, 75, 75)
+        
+        # Convert back to 3-channel for model compatibility
+        final_img = cv2.cvtColor(bilateral, cv2.COLOR_GRAY2RGB)
+        return final_img.astype(np.float32)/255.0  # Normalize to [0,1]
+
+    # Apply processing 
+    processed = tf.py_function(cv_processing, [image], Tout=tf.float32)
+    processed.set_shape([128, 128, 3])  # Critical for model compatibility
+    
+    return processed, label
+
+# Modify dataset creation
+train_ds = tf.data.Dataset.from_tensor_slices((train_df['filepath'].values, 
+                                             train_df['label_idx'].values))
+train_ds = train_ds.map(load_and_preprocess, 
+                       num_parallel_calls=tf.data.AUTOTUNE)
+train_ds = train_ds.shuffle(1000).batch(32).prefetch(tf.data.AUTOTUNE)
+
+# repeat for test_ds
+test_ds = tf.data.Dataset.from_tensor_slices((test_df['filepath'].values,
+                                            test_df['label_idx'].values))
+test_ds = test_ds.map(load_and_preprocess)
+test_ds = test_ds.batch(32).prefetch(tf.data.AUTOTUNE)
+
+
+model = models.Sequential()
+model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(128, 128, 3)))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+
+model.add(layers.Flatten())
+model.add(layers.Dense(64, activation='relu'))
+model.add(layers.Dense(len(label_to_index),activation='softmax'))
+
+model.compile( optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+early_stop = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
+checkpoint = ModelCheckpoint('best_model.keras', monitor='val_loss', save_best_only=True, verbose=1)
+reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=2, verbose=1)
+
+history = model.fit(train_ds,epochs=20,validation_data=test_ds, callbacks=[early_stop, checkpoint, reduce_lr])
+
+y_pred = model.predict(test_ds).argmax(axis=1)
+y_true = np.concatenate([y.numpy() for x, y in test_ds], axis=0)
+
+accuracy = accuracy_score(y_true, y_pred)
+precision = precision_score(y_true, y_pred, average='macro', zero_division=0)
+recall = recall_score(y_true, y_pred, average='macro', zero_division=0)
+f1 = f1_score(y_true, y_pred, average='macro', zero_division=0)
+
+print("Accuracy:"+str(accuracy))
+print("Precision:"+str(precision))
+print("Recall:"+str(recall))
+print("F1 Score:"+ str(f1))
+
+plt.plot(history.history['accuracy'], label='accuracy')
+plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.ylim([0.5, 1])
+plt.legend(loc='lower right')
+
+
+test_loss, test_acc = model.evaluate(test_ds, verbose=2)
