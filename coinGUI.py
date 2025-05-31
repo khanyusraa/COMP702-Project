@@ -8,7 +8,7 @@ import cv2
 import tensorflow as tf
 
 #Load model and class indices
-model = tf.keras.models.load_model("hybrid_model.h5")
+model = tf.keras.models.load_model("best_hybrid_model.keras")
 with open("class_indices.json", "r") as f:
     class_indices = json.load(f)
 index_to_class = {v: k for k, v in class_indices.items()}
