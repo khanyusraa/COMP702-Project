@@ -5,12 +5,27 @@ from tkinter import filedialog, Label, Button
 from PIL import Image, ImageTk
 import numpy as np
 import cv2
+
+import sys
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+sys.stdout = open(os.devnull, 'w')
+sys.stderr = open(os.devnull, 'w')
+
 import tensorflow as tf
 
 #Load model and class indices
-model = tf.keras.models.load_model("best_hybrid_model.keras")
-with open("class_indices.json", "r") as f:
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS  # PyInstaller sets this
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+with open(resource_path("class_indices.json"), "r") as f:
     class_indices = json.load(f)
+model = tf.keras.models.load_model("best_hybrid_model.keras")
 index_to_class = {v: k for k, v in class_indices.items()}
 
 def preprocess_image(filepath, target_size=(128, 128)):
@@ -51,6 +66,17 @@ class CoinClassifierApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Coin Classifier")
+
+        window_width = 400
+        window_height = 500
+
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        x = int((screen_width / 2) - (window_width / 2))
+        y = int((screen_height / 2) - (window_height / 2))
+        root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        root.resizable(True, True)
+
 
         self.label = Label(root, text="Upload a coin image")
         self.label.pack()
