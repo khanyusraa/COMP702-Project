@@ -1,6 +1,6 @@
 # COMP702-Project
 
-A Coin Classification research project done on old and new post-democracy South African coins. The CoinClassifier Folder consists of the code done in AndroidStudio to create a deployable apk file. The coin_dataset was augmented via the augment.py script in legacy_code folder. The CoinClassifier Folder consists of the code done in AndroidStudio to create a deployable apk file.
+A Coin Classification research project done on old and new post-democracy South African coins. The coin_dataset was augmented via the augment.py script in legacy_code folder. The CoinClassifier Folder consists of the code done in AndroidStudio to create a deployable apk file.
 
 Running Instructions:
 
