@@ -4,6 +4,7 @@ from PIL import Image, ImageTk
 import cv2
 import numpy as np
 import json
+import onnxruntime as ort
 
 class CoinClassifierGUI:
     def __init__(self, root):
@@ -109,11 +110,11 @@ class CoinClassifierGUI:
         
         try:
             # Get prediction
-            prediction = self.classifier.predict(self.current_image)
+            prediction, confidence = self.classifier.predict(self.current_image)
             
             # Display results
             self.result_var.set(f"Prediction: {prediction}")
-            self.confidence_var.set("High confidence")  # Actual confidence would come from model
+            self.confidence_var.set(f"Confidence: {confidence*100:.2f}%")
             self.status_var.set("Classification complete")
             
         except Exception as e:
@@ -123,7 +124,6 @@ class CoinClassifierGUI:
 
 class CoinClassifier:
     def __init__(self, onnx_model_path, class_indices_path):
-        import onnxruntime as ort
         self.session = ort.InferenceSession(onnx_model_path)
         self.input_names = [input.name for input in self.session.get_inputs()]
         self.output_name = self.session.get_outputs()[0].name
@@ -139,15 +139,15 @@ class CoinClassifier:
         
         img = cv2.resize(img, (128, 128))
         
-        # RGB processing
+        # RGB processing - ensure float32
         rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        rgb = rgb.astype(np.float32)
+        rgb = rgb.astype(np.float32)  # Explicit float32
         rgb = rgb / 127.5 - 1.0
         
-        # Grayscale processing
+        # Grayscale processing - ensure float32
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         gray = cv2.equalizeHist(gray)
-        kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
+        kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], dtype=np.float32)
         gray = cv2.filter2D(gray, -1, kernel)
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         gray = clahe.apply(gray)
@@ -157,13 +157,14 @@ class CoinClassifier:
         contour_img = np.zeros_like(edges)
         contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(contour_img, contours, -1, 255, 1)
-        contour_img = contour_img.astype(np.float32) / 255.0
+        contour_img = contour_img.astype(np.float32) / 255.0  # Explicit float32
         contour_img = np.expand_dims(contour_img, axis=-1)
         
-        # Hu Moments calculation
-        moments = cv2.moments(contour_img)
+        # Hu Moments calculation - convert to float32
+        moments = cv2.moments(contour_img.astype(np.uint8))  # uint8 for moments calculation
         huMoments = cv2.HuMoments(moments).flatten()
         huMoments = -np.sign(huMoments) * np.log10(np.abs(huMoments) + 1e-10)
+        huMoments = huMoments.astype(np.float32)  #Convert to float32
         
         return {
             "rgb_input": np.expand_dims(rgb, axis=0),
@@ -173,15 +174,14 @@ class CoinClassifier:
     
     def predict(self, image_path):
         inputs = self.preprocess_image(image_path)
-        ort_inputs = {name: inputs[name] for name in self.input_names}
+        ort_inputs = {name: inputs[name].astype(np.float32) for name in self.input_names}  # Ensure float32
         
         pred = self.session.run([self.output_name], ort_inputs)[0]
         class_idx = np.argmax(pred, axis=1)[0]
-        confidence = np.max(pred)
+        confidence = np.max(pred, axis=1)[0]
         
         return self.reverse_class_map[class_idx], confidence
 
-# Run the application
 if __name__ == "__main__":
     root = tk.Tk()
     app = CoinClassifierGUI(root)
