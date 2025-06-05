@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.ashton.coinclassifier.app-mergeDebugResources-30:/values-hdpi-v4/values-hdpi-v4.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\ZaiN\\.gradle\\caches\\8.11.1\\transforms\\169d0330f92eb9a4c00b06c6fd73342d\\transformed\\appcompat-1.6.1\\res\\values-hdpi-v4\\values-hdpi-v4.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "6",
+                        "endColumns": "13",
+                        "endOffsets": "327"
+                    }
+                }
+            ]
+        }
+    ]
+}

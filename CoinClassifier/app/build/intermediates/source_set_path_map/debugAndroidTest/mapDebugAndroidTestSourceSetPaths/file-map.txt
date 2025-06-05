@@ -1,0 +1,5 @@
+com.ashton.coinclassifier.test.app-core-1.6.1-0 C:\Users\ZaiN\.gradle\caches\8.11.1\transforms\897e1ed7e5a6c750a0c0e4115e776f1c\transformed\core-1.6.1\res
+com.ashton.coinclassifier.test.app-androidTest-1 C:\Users\ZaiN\AndroidStudioProjects\CoinClassifier\app\build\generated\res\resValues\androidTest\debug
+com.ashton.coinclassifier.test.app-mergeDebugAndroidTestResources-2 C:\Users\ZaiN\AndroidStudioProjects\CoinClassifier\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\merged.dir
+com.ashton.coinclassifier.test.app-mergeDebugAndroidTestResources-3 C:\Users\ZaiN\AndroidStudioProjects\CoinClassifier\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\stripped.dir
+com.ashton.coinclassifier.test.app-debugAndroidTest-4 C:\Users\ZaiN\AndroidStudioProjects\CoinClassifier\app\build\intermediates\merged_res\debugAndroidTest\mergeDebugAndroidTestResources
