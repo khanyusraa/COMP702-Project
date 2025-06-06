@@ -14,3 +14,7 @@ Running Instructions:
 -Extract to a directory of your choice and then enter the folder. Python must also be installed.
 -Double click the bat file to execute the program. 
 -Load an image and click the classify button to classify it.
+
+Coin dataset:
+The dataset was compiled using the South African subsection on the OnlineCoinClub (https://onlinecoin.club/Coins/Country/South_Africa/) website as the main repository. The website documents each coin denomination throughout all the relevant years (1994 - 2022). The newer coins, released in 2023 were sourced from other loyalty-free images in order to fully represent all the South African coin variations.
+After downloading the front and back images of each coin, the dataset was cleaned to remove any class imbalances in some coins, resulting in 295 coin images. Following augmentation on the the images, the final dataset consists of 3245 coin images. 
